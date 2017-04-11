@@ -1,6 +1,8 @@
 package com.example.mma.tespis;
 
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.support.annotation.NonNull;
 import android.support.v4.app.FragmentActivity;
 import android.support.v7.app.AppCompatActivity;
@@ -21,16 +23,52 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
 
     private static final int RC_SIGN_IN = 34;
     private static final String TAG = "TesPIs";
+
+    /**
+     * GoogleApiClient is a service connection to Google Play services and provides access
+     * to the user's OAuth2 and API availability state for the APIs and scopes requested. Before
+     * making Google Play services API calls ensure
+     * {@code com.google.android.gms.common.api.GoogleApiClient.isConnected()} returns true.
+     */
+
     GoogleApiClient mGoogleApiClient;
 
     TextView textView;
     GoogleSignInAccount acct;
+    private static final String SHARED_PREFS = "GoogleAccountSamplePrefs";
+
+    /**
+     * Preference that tracks whether the user is currently signed into the app.
+     * Specifically, if a user signs into the app via a Google Account and then comes back to it
+     * later this indicates they were last signed in. This preference is used to determine
+     * whether to initiate the GoogleApiClient connection immediately upon opening the activity.
+     * This logic prevents the user's first experience with your app from being an OAuth2 consent
+     * dialog.
+     */
+    private static final String PREFS_IS_SIGNED_IN = "IS_SIGNED_IN";
+
+
 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
+
+
+        if (isSignedIn()) {
+//            rebuildGoogleApiClient();
+//            // TODO: This next IF statement temporarily deals with an issue where autoManage doesn't
+//            // call the onConnected callback after a Builder.build() when re-connecting after a
+//            // rotation change. Will remove when fixed.
+//            if (mGoogleApiClient != null && mGoogleApiClient.isConnected()) {
+//                onConnected(null);
+
+            // Go to home activity directly.
+            Intent goToHomeIntent = new Intent(this, HomeActivity.class);
+            startActivity(goToHomeIntent);
+            }
+
 
         // Configure sign-in to request the user's ID, email address, and basic
         // profile. ID and basic profile are included in DEFAULT_SIGN_IN.
@@ -107,6 +145,10 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
 
             Log.d(TAG, "b is true");
             textView.setText("Welcome " + acct.getDisplayName() + "!");
+
+            // Update shared preferences
+            storeSignInState(true);
+
             // Go to home activity
             Intent goToHomeIntent = new Intent(this, HomeActivity.class);
             startActivity(goToHomeIntent);
@@ -114,6 +156,9 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
         } else {
             Log.d(TAG, "b is false");
             textView.setText("Unauthenticated!..");
+
+            // Update shared preferences
+            storeSignInState(false);
         }
 
     }
@@ -123,5 +168,28 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
 
         Log.d(TAG, "On connection failed...");
         textView.setText(connectionResult.toString());
+    }
+
+    /**
+     * Returns whether the user is signed into the app.
+     */
+    private boolean isSignedIn() {
+        Context context = getApplicationContext();
+        SharedPreferences sharedPrefs = context.getSharedPreferences(SHARED_PREFS,
+                MODE_PRIVATE);
+        return sharedPrefs.getBoolean(PREFS_IS_SIGNED_IN, false);
+    }
+
+    /**
+     * Changes the user's app sign in state.
+     *
+     * @param signedIn Whether the user is signed in.
+     */
+    private void storeSignInState(boolean signedIn) {
+        Context context = getApplicationContext();
+        SharedPreferences sharedPrefs = context.getSharedPreferences(SHARED_PREFS, MODE_PRIVATE);
+        SharedPreferences.Editor editor = sharedPrefs.edit();
+        editor.putBoolean(PREFS_IS_SIGNED_IN, signedIn);
+        editor.apply();
     }
 }
